@@ -29,7 +29,6 @@ const App = () =>  {
       });
       const registerResponseJson = (await registerResponse.json()) as PublicKeyCredentialCreationOptionsJSON;
       const credential = await startRegistration(registerResponseJson);
-      console.log(credential);
 
       const registerResponseResponse = await fetch(`${authConfig.serverUri}/api/register/response`, {
         method: 'POST',
@@ -77,7 +76,6 @@ const App = () =>  {
     });
     const loginResponseJson = (await loginResponse.json()) as PublicKeyCredentialRequestOptionsJSON;
     const credential = await startAuthentication(loginResponseJson);
-    console.log(credential);
     
     const loginResponseResponse = await fetch(`${authConfig.serverUri}/api/login/response`, {
       method: 'POST',

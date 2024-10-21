@@ -70,6 +70,10 @@ const uint8ArrayToUrlsafeBase64Text = (arrayBuffer: ArrayBuffer) => {
 const App = () =>  {
   const [name, setName] = useState('user2');
   const [displayName, setDisplayName] = useState('User2');
+  const [statusMessageList, setStatusMessageList] = useState<{
+    message: string,
+    type: 'success' | 'danger',
+  }[]>([]);
 
   const register = async () => {
     const registerResponse = await fetch(`${authConfig.serverUri}/api/register`, {
@@ -83,7 +87,10 @@ const App = () =>  {
       }),
     });
     if (!registerResponse.ok) {
-      alert('Failed to register.');
+      setStatusMessageList([...statusMessageList, {
+        message: 'Failed to register.',
+        type: 'danger',
+      }]);
       return;
     }
 
@@ -104,9 +111,11 @@ const App = () =>  {
         timeout: registerResponseJson.publicKey.timeout,
       }
     })) as (PublicKeyCredential | null);
-    console.log('credential', credential);
     if (!credential) {
-      alert('Failed to create credential.');
+      setStatusMessageList([...statusMessageList, {
+        message: 'Failed to register.',
+        type: 'danger',
+      }]);
       return;
     }
 
@@ -129,12 +138,16 @@ const App = () =>  {
       }),
     });
     if (!registerResponseResponse.ok) {
-      alert('Failed to register response.');
+      setStatusMessageList([...statusMessageList, {
+        message: 'Failed to register.',
+        type: 'danger',
+      }]);
       return;
     }
-    console.log('registerResponseResponse', registerResponseResponse);
-
-    alert('Registered successfully.');
+    setStatusMessageList([...statusMessageList, {
+      message: 'Successfully registered.',
+      type: 'success',
+    }]);
   }
 
   const login = async () => {
@@ -148,12 +161,14 @@ const App = () =>  {
       }),
     });
     if (!loginResponse.ok) {
-      alert('Failed to login.');
+      setStatusMessageList([...statusMessageList, {
+        message: 'Failed to login.',
+        type: 'danger',
+      }]);
       return;
     }
 
     const loginResponseJson: LoginResponseJson = await loginResponse.json();
-    console.log('loginResponseJson', loginResponseJson);
 
     const credential = (await navigator.credentials.get({
       publicKey: {
@@ -167,9 +182,11 @@ const App = () =>  {
         ),
       },
     })) as (PublicKeyCredential | null);
-    console.log('credential', credential);
     if (!credential) {
-      alert('Failed to create credential.');
+      setStatusMessageList([...statusMessageList, {
+        message: 'Failed to login.',
+        type: 'danger',
+      }]);
       return;
     }
 
@@ -188,12 +205,16 @@ const App = () =>  {
     });
 
     if (!loginResponseResponse.ok) {
-      alert('Failed to login response.');
+      setStatusMessageList([...statusMessageList, {
+        message: 'Failed to login.',
+        type: 'danger',
+      }]);
       return;
     }
-    console.log('loginResponseResponse', loginResponseResponse);
-
-    // alert('Logined successfully.');
+    setStatusMessageList([...statusMessageList, {
+      message: 'Successfully logged in.',
+      type: 'success',
+    }]);
           
   }
 
@@ -202,6 +223,16 @@ const App = () =>  {
       <div className="row justify-content-center my-3">
         <div className="col col-6">
           <h1 className=" text-center">WebAuthn Study</h1>
+          {
+            statusMessageList.map((statusMessage, index) => (
+              <div key={index} className={`alert alert-${statusMessage.type} alert-dismissible fade show`} role="alert">
+                {statusMessage.message}
+                <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close" onClick={() => {
+                  setStatusMessageList(statusMessageList.filter((_, i) => i !== index));
+                }}></button>
+              </div>
+            ))
+          }
           <form>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">Name</label>
