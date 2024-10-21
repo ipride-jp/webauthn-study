@@ -15,7 +15,7 @@
 
 1. クライアント (`sample-webauthn-app`) の環境構築
    - `sample-webauthn-app`ディレクトリに移動
-   - `npm install`を実行
+   - `npm ci`を実行
 2. サーバー (`sample-webauthn-server`) の環境構築
    - `sample-webauthn-server`ディレクトリに移動
    - `pip install -r requirements.txt`を実行
@@ -30,6 +30,6 @@
   - `python main.py`を実行
 3. ブラウザで`http://localhost:3000`にアクセス
 4. Name と DisplayName を入力し、Register ボタンをクリック
-5. 正常に完了したら、「`Success to register.`」というステータスメッセージが表示される
+5. 正常に完了したら、「`Successfully registered.`」というステータスメッセージが表示される
 6. 5.を確認した後に、Login ボタンをクリック
-7. 正常に完了したら、「`Success to login.`」というステータスメッセージが表示される
+7. 正常に完了したら、「`Successfully logged in.`」というステータスメッセージが表示される
