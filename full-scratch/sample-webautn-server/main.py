@@ -86,62 +86,8 @@ app.add_middleware(
 init_db()
 
 
-@app.post('/api/register/response')
-def register_response(payload: RegisterResponse):
-  with sqlite3.connect('users.db') as conn:
-    cursor = conn.cursor()
-
-    # Fetch the challenge from the database
-    cursor.execute('SELECT challenge FROM users WHERE id = ?', (payload.id,))
-    stored_challenge = cursor.fetchone()
-
-    if not stored_challenge:
-      raise HTTPException(status_code=400, detail='User not found')
-
-    stored_challenge = stored_challenge[0]
-
-  # Verify the challenge matches
-  client_data_json = json.loads(url_safe_base64_text_to_string(payload.clientDataJSON))
-  if stored_challenge != client_data_json['challenge']:
-    raise HTTPException(status_code=400, detail='Invalid challenge')
-
-  # Verify the origin URL
-  if client_data_json['origin'] != CLIENT_URL:
-    raise HTTPException(status_code=400, detail='Invalid origin')
-
-  # Verify the attestation
-  attestation_object = cbor2.loads(url_safe_base64_text_to_binary(payload.attestationObject))
-  from pprint import pprint
-  pprint(attestation_object)
-  if attestation_object['fmt'] != 'none':
-    raise HTTPException(status_code=400, detail='Unsupported attestation')
-  auth_data = attestation_object['authData']
-  id_length = int.from_bytes(auth_data[53:55], byteorder='big')
-  public_key_cbor = auth_data[55 + id_length:]
-  credential_public_key = cbor2.loads(public_key_cbor)
-  pprint(credential_public_key)
-
-  with sqlite3.connect('users.db') as conn:
-    cursor = conn.cursor()
-    cursor.execute('''
-     UPDATE users
-     SET publicKey = ?
-     WHERE id = ?
-    ''', (json.dumps({
-      'id': payload.credentialId,
-      'rawId': payload.credentialId,
-      'response': {
-        'attestationObject': payload.attestationObject,
-        'clientDataJSON': payload.clientDataJSON
-      },
-      'publicKey': base64.b64encode(public_key_cbor).decode('ascii') if attestation_object['fmt'] == 'none' else ''
-    }), payload.id))
-    conn.commit()
-  return {'status': 'ok'}
-
-
 @app.post('/api/register')
-def register_account(register_request: RegisterRequest):
+def register_account_endpoint(register_request: RegisterRequest):
   user_id = secrets.token_urlsafe(32)
   challenge = secrets.token_urlsafe(32)
 
@@ -179,13 +125,13 @@ def register_account(register_request: RegisterRequest):
   }
 
 
-@app.post('/api/login/response')
-def log_response(payload: LoginResponse):
+@app.post('/api/register/response')
+def register_response_endpoint(register_response: RegisterResponse):
   with sqlite3.connect('users.db') as conn:
     cursor = conn.cursor()
 
     # Fetch the challenge from the database
-    cursor.execute('SELECT challenge FROM users WHERE name = ?', (payload.name,))
+    cursor.execute('SELECT challenge FROM users WHERE id = ?', (register_response.id,))
     stored_challenge = cursor.fetchone()
 
     if not stored_challenge:
@@ -194,7 +140,7 @@ def log_response(payload: LoginResponse):
     stored_challenge = stored_challenge[0]
 
   # Verify the challenge matches
-  client_data_json = json.loads(url_safe_base64_text_to_string(payload.clientDataJSON))
+  client_data_json = json.loads(url_safe_base64_text_to_string(register_response.clientDataJSON))
   if stored_challenge != client_data_json['challenge']:
     raise HTTPException(status_code=400, detail='Invalid challenge')
 
@@ -202,25 +148,39 @@ def log_response(payload: LoginResponse):
   if client_data_json['origin'] != CLIENT_URL:
     raise HTTPException(status_code=400, detail='Invalid origin')
 
-  # Verify the authenticatorData
-  authenticator_data = url_safe_base64_text_to_binary(payload.authenticatorData)
+  # Verify the attestation
+  attestation_object = cbor2.loads(url_safe_base64_text_to_binary(register_response.attestationObject))
+  from pprint import pprint
+  pprint(attestation_object)
+  if attestation_object['fmt'] != 'none':
+    raise HTTPException(status_code=400, detail='Unsupported attestation')
+  auth_data = attestation_object['authData']
+  id_length = int.from_bytes(auth_data[53:55], byteorder='big')
+  public_key_cbor = auth_data[55 + id_length:]
+  credential_public_key = cbor2.loads(public_key_cbor)
+  pprint(credential_public_key)
 
-  rp_id_hash = authenticator_data[0:32]
-  hash_sha256 = hashlib.sha256(RP_ID.encode())
-  if hash_sha256.digest() != rp_id_hash:
-    raise HTTPException(status_code=400, detail='Invalid RP ID')
-
-  flags = authenticator_data[32]
-  if flags & 0b00000001 == 0:
-    raise HTTPException(status_code=400, detail='User not present')
-  if flags & 0b00000100 == 0:
-    raise HTTPException(status_code=400, detail='User not verified')
-
+  with sqlite3.connect('users.db') as conn:
+    cursor = conn.cursor()
+    cursor.execute('''
+     UPDATE users
+     SET publicKey = ?
+     WHERE id = ?
+    ''', (json.dumps({
+      'id': register_response.credentialId,
+      'rawId': register_response.credentialId,
+      'response': {
+        'attestationObject': register_response.attestationObject,
+        'clientDataJSON': register_response.clientDataJSON
+      },
+      'publicKey': base64.b64encode(public_key_cbor).decode('ascii') if attestation_object['fmt'] == 'none' else ''
+    }), register_response.id))
+    conn.commit()
   return {'status': 'ok'}
 
 
 @app.post('/api/login')
-def login(login_request: LoginRequest):
+def login_account_endpoint(login_request: LoginRequest):
   challenge = secrets.token_urlsafe(32)
 
   with sqlite3.connect('users.db') as conn:
@@ -256,6 +216,46 @@ def login(login_request: LoginRequest):
       }
     ],
   }
+
+
+@app.post('/api/login/response')
+def login_response_endpoint(login_response: LoginResponse):
+  with sqlite3.connect('users.db') as conn:
+    cursor = conn.cursor()
+
+    # Fetch the challenge from the database
+    cursor.execute('SELECT challenge FROM users WHERE name = ?', (login_response.name,))
+    stored_challenge = cursor.fetchone()
+
+    if not stored_challenge:
+      raise HTTPException(status_code=400, detail='User not found')
+
+    stored_challenge = stored_challenge[0]
+
+  # Verify the challenge matches
+  client_data_json = json.loads(url_safe_base64_text_to_string(login_response.clientDataJSON))
+  if stored_challenge != client_data_json['challenge']:
+    raise HTTPException(status_code=400, detail='Invalid challenge')
+
+  # Verify the origin URL
+  if client_data_json['origin'] != CLIENT_URL:
+    raise HTTPException(status_code=400, detail='Invalid origin')
+
+  # Verify the authenticatorData
+  authenticator_data = url_safe_base64_text_to_binary(login_response.authenticatorData)
+
+  rp_id_hash = authenticator_data[0:32]
+  hash_sha256 = hashlib.sha256(RP_ID.encode())
+  if hash_sha256.digest() != rp_id_hash:
+    raise HTTPException(status_code=400, detail='Invalid RP ID')
+
+  flags = authenticator_data[32]
+  if flags & 0b00000001 == 0:
+    raise HTTPException(status_code=400, detail='User not present')
+  if flags & 0b00000100 == 0:
+    raise HTTPException(status_code=400, detail='User not verified')
+
+  return {'status': 'ok'}
 
 
 if __name__ == '__main__':
