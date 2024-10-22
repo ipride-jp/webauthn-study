@@ -18,6 +18,7 @@ from webauthn import (
 CLIENT_URL = 'http://localhost:3000'
 SERVER_PORT = 8080
 RP_ID = 'localhost'
+RP_NAME = 'Sample WebAuthn Server.'
 
 
 class RegisterRequest(BaseModel):
@@ -84,7 +85,7 @@ init_db()
 def register_account_endpoint(register_request: RegisterRequest):
   simple_registration_options = generate_registration_options(
     rp_id=RP_ID,
-    rp_name='Sample WebAuthn Server.',
+    rp_name=RP_NAME,
     user_name=register_request.name,
     user_display_name=register_request.displayName,
   )
