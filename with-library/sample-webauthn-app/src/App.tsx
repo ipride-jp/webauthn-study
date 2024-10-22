@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
+import { StatusMessage, StatusMessageView } from "./StatusMessageView";
 
 export const authConfig = {
   serverUri: 'http://localhost:8080',
@@ -10,10 +11,7 @@ const App = () =>  {
 
   const [name, setName] = useState('user2');
   const [displayName, setDisplayName] = useState('User2');
-  const [statusMessageList, setStatusMessageList] = useState<{
-    message: string,
-    type: 'success' | 'danger',
-  }[]>([]);
+  const [statusMessageList, setStatusMessageList] = useState<StatusMessage[]>([]);
 
   const register = async () => {
     try {
@@ -110,16 +108,7 @@ const App = () =>  {
       <div className="row justify-content-center my-3">
         <div className="col col-6">
           <h1 className=" text-center">WebAuthn Study</h1>
-          {
-            statusMessageList.map((statusMessage, index) => (
-              <div key={index} className={`alert alert-${statusMessage.type} alert-dismissible fade show`} role="alert">
-                {statusMessage.message}
-                <button type="button" className="btn-close" data-bs-dismiss="alert" aria-label="Close" onClick={() => {
-                  setStatusMessageList(statusMessageList.filter((_, i) => i !== index));
-                }}></button>
-              </div>
-            ))
-          }
+          <StatusMessageView statusMessageList={statusMessageList} setStatusMessageList={setStatusMessageList} />
           <form>
             <div className="mb-3">
               <label htmlFor="name" className="form-label">Name</label>
