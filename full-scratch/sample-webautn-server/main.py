@@ -278,30 +278,37 @@ def login_response_endpoint(login_response: LoginResponse):
     cursor.execute('DELETE FROM login_challenge WHERE name = ?', (login_response.name,))
     (user_name, user_challenge) = row
 
-  # Verify the challenge matches
-  client_data_json = json.loads(url_safe_base64_text_to_string(login_response.clientDataJSON))
-  if user_challenge != client_data_json['challenge']:
-    raise HTTPException(status_code=400, detail='Invalid challenge')
+  try:
+    # Verify the challenge matches
+    client_data_json = json.loads(url_safe_base64_text_to_string(login_response.clientDataJSON))
+    if user_challenge != client_data_json['challenge']:
+      raise HTTPException(status_code=400, detail='Invalid challenge')
 
-  # Verify the origin URL
-  if client_data_json['origin'] != CLIENT_URL:
-    raise HTTPException(status_code=400, detail='Invalid origin')
+    # Verify the origin URL
+    if client_data_json['origin'] != CLIENT_URL:
+      raise HTTPException(status_code=400, detail='Invalid origin')
 
-  # Verify the authenticatorData
-  authenticator_data = url_safe_base64_text_to_binary(login_response.authenticatorData)
+    # Verify the authenticatorData
+    authenticator_data = url_safe_base64_text_to_binary(login_response.authenticatorData)
 
-  rp_id_hash = authenticator_data[0:32]
-  hash_sha256 = hashlib.sha256(RP_ID.encode())
-  if hash_sha256.digest() != rp_id_hash:
-    raise HTTPException(status_code=400, detail='Invalid RP ID')
+    rp_id_hash = authenticator_data[0:32]
+    hash_sha256 = hashlib.sha256(RP_ID.encode())
+    if hash_sha256.digest() != rp_id_hash:
+      raise HTTPException(status_code=400, detail='Invalid RP ID')
 
-  flags = authenticator_data[32]
-  if flags & 0b00000001 == 0:
-    raise HTTPException(status_code=400, detail='User not present')
-  if flags & 0b00000100 == 0:
-    raise HTTPException(status_code=400, detail='User not verified')
+    flags = authenticator_data[32]
+    if flags & 0b00000001 == 0:
+      raise HTTPException(status_code=400, detail='User not present')
+    if flags & 0b00000100 == 0:
+      raise HTTPException(status_code=400, detail='User not verified')
 
-  return {'status': 'ok'}
+    return {'status': 'ok'}
+  except Exception as e:
+    return Response(
+      content=json.dumps({'status': 'error', 'message': str(e)}),
+      media_type='application/json',
+      status_code=400
+    )
 
 
 if __name__ == '__main__':
