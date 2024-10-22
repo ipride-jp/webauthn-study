@@ -54,14 +54,9 @@ const App = () =>  {
         },
         body: JSON.stringify({
           id: registerResponseJson.user.id,
-          credential: {
-            id: credential.id,
-            rawId: uint8ArrayToUrlsafeBase64Text(credential.rawId),
-            response: {
-              attestationObject: uint8ArrayToUrlsafeBase64Text(credentialResponse.attestationObject),
-              clientDataJSON: uint8ArrayToUrlsafeBase64Text(credentialResponse.clientDataJSON),
-            },
-          }
+          credentialId: credential.id,
+          attestationObject: uint8ArrayToUrlsafeBase64Text(credentialResponse.attestationObject),
+          clientDataJSON: uint8ArrayToUrlsafeBase64Text(credentialResponse.clientDataJSON),
         }),
       });
       if (!registerResponseResponse.ok) {
@@ -117,6 +112,7 @@ const App = () =>  {
         },
         body: JSON.stringify({
           name,
+          credentialId: credential.id,
           authenticatorData: uint8ArrayToUrlsafeBase64Text(credentialResponse.authenticatorData),
           clientDataJSON: uint8ArrayToUrlsafeBase64Text(credentialResponse.clientDataJSON),
           signature: uint8ArrayToUrlsafeBase64Text(credentialResponse.signature),

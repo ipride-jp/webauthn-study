@@ -26,15 +26,11 @@ class CredentialResponseResponse(BaseModel):
   clientDataJSON: str
 
 
-class CredentialResponse(BaseModel):
-  id: str
-  rawId: str
-  response: CredentialResponseResponse
-
-
 class RegisterResponse(BaseModel):
-  credential: CredentialResponse
+  attestationObject: str
+  clientDataJSON: str
   id: str
+  credentialId: str
 
 
 class LoginRequest(BaseModel):
@@ -42,9 +38,10 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-  name: str
   authenticatorData: str
   clientDataJSON: str
+  name: str
+  credentialId: str
   signature: str
 
 
@@ -104,7 +101,7 @@ def register_response(payload: RegisterResponse):
     stored_challenge = stored_challenge[0]
 
   # Verify the challenge matches
-  client_data_json = json.loads(url_safe_base64_text_to_string(payload.credential.response.clientDataJSON))
+  client_data_json = json.loads(url_safe_base64_text_to_string(payload.clientDataJSON))
   if stored_challenge != client_data_json['challenge']:
     raise HTTPException(status_code=400, detail='Invalid challenge')
 
@@ -113,7 +110,7 @@ def register_response(payload: RegisterResponse):
     raise HTTPException(status_code=400, detail='Invalid origin')
 
   # Verify the attestation
-  attestation_object = cbor2.loads(url_safe_base64_text_to_binary(payload.credential.response.attestationObject))
+  attestation_object = cbor2.loads(url_safe_base64_text_to_binary(payload.attestationObject))
   from pprint import pprint
   pprint(attestation_object)
   if attestation_object['fmt'] != 'none':
@@ -131,11 +128,11 @@ def register_response(payload: RegisterResponse):
      SET publicKey = ?
      WHERE id = ?
     ''', (json.dumps({
-      'id': payload.credential.id,
-      'rawId': payload.credential.rawId,
+      'id': payload.credentialId,
+      'rawId': payload.credentialId,
       'response': {
-        'attestationObject': payload.credential.response.attestationObject,
-        'clientDataJSON': payload.credential.response.clientDataJSON
+        'attestationObject': payload.attestationObject,
+        'clientDataJSON': payload.clientDataJSON
       },
       'publicKey': base64.b64encode(public_key_cbor).decode('ascii') if attestation_object['fmt'] == 'none' else ''
     }), payload.id))
