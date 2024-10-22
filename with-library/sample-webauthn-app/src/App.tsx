@@ -25,7 +25,7 @@ const App = () =>  {
           displayName,
         }),
       });
-      const registerResponseJson = (await registerResponse.json()) as PublicKeyCredentialCreationOptionsJSON;
+      const registerResponseJson: PublicKeyCredentialCreationOptionsJSON = await registerResponse.json();
       const credential = await startRegistration(registerResponseJson);
 
       const registerResponseResponse = await fetch(`${authConfig.serverUri}/api/register/response`, {
@@ -40,13 +40,8 @@ const App = () =>  {
           clientDataJSON: credential.response.clientDataJSON,
         }),
       });
-
       if (!registerResponseResponse.ok) {
-        setStatusMessageList([...statusMessageList, {
-          message: 'Failed to register.',
-          type: 'danger',
-        }]);
-        return;
+        throw new Error('Failed to register.');
       }
   
       setStatusMessageList([...statusMessageList, {
@@ -63,44 +58,47 @@ const App = () =>  {
   }
 
   const login = async () => {
-    const loginResponse = await fetch(`${authConfig.serverUri}/api/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name,
-      }),
-    });
-    const loginResponseJson = (await loginResponse.json()) as PublicKeyCredentialRequestOptionsJSON;
-    const credential = await startAuthentication(loginResponseJson);
-    
-    const loginResponseResponse = await fetch(`${authConfig.serverUri}/api/login/response`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name,
-        credentialId: credential.id,
-        authenticatorData: credential.response.authenticatorData,
-        clientDataJSON: credential.response.clientDataJSON,
-        signature: credential.response.signature,
-      }),
-    });
+    try {
+      const loginResponse = await fetch(`${authConfig.serverUri}/api/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+        }),
+      });
+      const loginResponseJson: PublicKeyCredentialRequestOptionsJSON = await loginResponse.json();
+      const credential = await startAuthentication(loginResponseJson);
 
-    if (!loginResponseResponse.ok) {
+      const loginResponseResponse = await fetch(`${authConfig.serverUri}/api/login/response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          credentialId: credential.id,
+          authenticatorData: credential.response.authenticatorData,
+          clientDataJSON: credential.response.clientDataJSON,
+          signature: credential.response.signature,
+        }),
+      });
+      if (!loginResponseResponse.ok) {
+        throw new Error('Failed to login.');
+      }
+
+      setStatusMessageList([...statusMessageList, {
+        message: 'Successfully logged in.',
+        type: 'success',
+      }]);
+    } catch (e) {
+      console.error(e);
       setStatusMessageList([...statusMessageList, {
         message: 'Failed to login.',
         type: 'danger',
       }]);
-      return;
     }
-
-    setStatusMessageList([...statusMessageList, {
-      message: 'Successfully logged in.',
-      type: 'success',
-    }]);
   }
 
   return (
