@@ -157,30 +157,28 @@ def register_account(register_request: RegisterRequest):
     conn.commit()
 
   return {
-    'publicKey': {
-      'challenge': challenge,
-      'rp': {
-        'id': RP_ID,
-        'name': 'Sample WebAuthn Server.'
+    'challenge': challenge,
+    'rp': {
+      'id': RP_ID,
+      'name': 'Sample WebAuthn Server.'
+    },
+    'user': {
+      'id': user_id,
+      'name': register_request.name,
+      'displayName': register_request.displayName
+    },
+    'pubKeyCredParams': [
+      {
+        'type': 'public-key',
+        'alg': -7
       },
-      'user': {
-        'id': user_id,
-        'name': register_request.name,
-        'displayName': register_request.displayName
-      },
-      'pubKeyCredParams': [
-        {
-          'type': 'public-key',
-          'alg': -7
-        },
-        {
-          'type': 'public-key',
-          'alg': -257
-        }
-      ],
-      'timeout': 60000,
-      'attestation': 'none'
-    }
+      {
+        'type': 'public-key',
+        'alg': -257
+      }
+    ],
+    'timeout': 60000,
+    'attestation': 'none'
   }
 
 
@@ -252,16 +250,14 @@ def login(login_request: LoginRequest):
     conn.commit()
 
   return {
-    'publicKey': {
-      'challenge': challenge,
-      'allowCredentials': [
-        {
-          'transports': ['internal'],
-          'type': 'public-key',
-          'id': stored_public_key_json['id'],
-        }
-      ],
-    }
+    'challenge': challenge,
+    'allowCredentials': [
+      {
+        'transports': ['internal'],
+        'type': 'public-key',
+        'id': stored_public_key_json['id'],
+      }
+    ],
   }
 
 

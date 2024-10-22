@@ -1,71 +1,10 @@
 import { useState } from "react";
 import { StatusMessage, StatusMessageView } from "./StatusMessageView";
+import { LoginResponseJson, RegisterResponseJson } from "./types";
+import { uint8ArrayToUrlsafeBase64Text, urlsafeBase64TextToUint8Array } from "./utility";
 
 export const authConfig = {
   serverUri: 'http://localhost:8080',
-}
-
-type RegisterResponseJson = {
-  publicKey: {
-    challenge: string;
-    rp: {
-      id: string;
-      name: string;
-    };
-    user: {
-      id: string;
-      name: string;
-      displayName: string;
-    };
-    pubKeyCredParams: {
-      type: string;
-      alg: number;
-    }[];
-    timeout: number;
-    attestation: string;
-  }
-}
-
-type LoginResponseJson = {
-  publicKey: {
-    challenge: string;
-    allowCredentials: {
-      type: string;
-      id: string;
-      transports: string[];
-    }[];
-  }
-}
-
-const urlsafeBase64TextToUint8Array = (text: string) => {
-  const base64 = text.replace(/-/g, '+').replace(/_/g, '/');
-  const paddedBase64 = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
-
-  const binaryString = atob(paddedBase64);
-
-  const uint8Array = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    uint8Array[i] = binaryString.charCodeAt(i);
-  }
-
-  const arrayBuffer = uint8Array.buffer;
-
-  return arrayBuffer;
-}
-
-const uint8ArrayToUrlsafeBase64Text = (arrayBuffer: ArrayBuffer) => {
-  const uint8Array = new Uint8Array(arrayBuffer);
-
-  let binaryString = '';
-  for (let i = 0; i < uint8Array.length; i++) {
-    binaryString += String.fromCharCode(uint8Array[i]);
-  }
-
-  const base64 = btoa(binaryString);
-
-  const text = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-
-  return text;
 }
 
 const App = () =>  {
@@ -89,18 +28,18 @@ const App = () =>  {
       const registerResponseJson: RegisterResponseJson = await registerResponse.json();
       const credential = (await navigator.credentials.create({
         publicKey: {
-          challenge: urlsafeBase64TextToUint8Array(registerResponseJson.publicKey.challenge),
+          challenge: urlsafeBase64TextToUint8Array(registerResponseJson.challenge),
           rp: {
-            id: registerResponseJson.publicKey.rp.id,
-            name: registerResponseJson.publicKey.rp.name,
+            id: registerResponseJson.rp.id,
+            name: registerResponseJson.rp.name,
           },
           user: {
-            id: urlsafeBase64TextToUint8Array(registerResponseJson.publicKey.user.id),
-            name: registerResponseJson.publicKey.user.name,
-            displayName: registerResponseJson.publicKey.user.displayName,
+            id: urlsafeBase64TextToUint8Array(registerResponseJson.user.id),
+            name: registerResponseJson.user.name,
+            displayName: registerResponseJson.user.displayName,
           },
-          pubKeyCredParams: registerResponseJson.publicKey.pubKeyCredParams as PublicKeyCredentialParameters[],
-          timeout: registerResponseJson.publicKey.timeout,
+          pubKeyCredParams: registerResponseJson.pubKeyCredParams as PublicKeyCredentialParameters[],
+          timeout: registerResponseJson.timeout,
         }
       })) as (PublicKeyCredential | null);
       if (!credential) {
@@ -114,7 +53,7 @@ const App = () =>  {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: registerResponseJson.publicKey.user.id,
+          id: registerResponseJson.user.id,
           credential: {
             id: credential.id,
             rawId: uint8ArrayToUrlsafeBase64Text(credential.rawId),
@@ -156,8 +95,8 @@ const App = () =>  {
       const loginResponseJson: LoginResponseJson = await loginResponse.json();
       const credential = (await navigator.credentials.get({
         publicKey: {
-          challenge: urlsafeBase64TextToUint8Array(loginResponseJson.publicKey.challenge),
-          allowCredentials: loginResponseJson.publicKey.allowCredentials.map((allowCredential) => {
+          challenge: urlsafeBase64TextToUint8Array(loginResponseJson.challenge),
+          allowCredentials: loginResponseJson.allowCredentials.map((allowCredential) => {
             return {
               type: allowCredential.type as 'public-key',
               id: urlsafeBase64TextToUint8Array(allowCredential.id),
