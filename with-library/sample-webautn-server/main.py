@@ -1,11 +1,11 @@
 import json
 import sqlite3
 
-from fastapi import FastAPI
-from fastapi.responses import Response
 import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
-from starlette.middleware.cors import CORSMiddleware
 from webauthn import (
   generate_authentication_options,
   generate_registration_options,

@@ -5,11 +5,10 @@ import secrets
 import sqlite3
 
 import cbor2
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import uvicorn
-
 
 CLIENT_URL = 'http://localhost:3000'
 SERVER_PORT = 8080
@@ -19,11 +18,6 @@ RP_ID = 'localhost'
 class RegisterRequest(BaseModel):
   name: str
   displayName: str
-
-
-class CredentialResponseResponse(BaseModel):
-  attestationObject: str
-  clientDataJSON: str
 
 
 class RegisterResponse(BaseModel):
